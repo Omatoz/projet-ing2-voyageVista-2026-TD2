@@ -1,0 +1,114 @@
+/* ==========================================================================
+   voyagevista/css/global.css — Styles Globaux Communs
+   ========================================================================== */
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: #f3f4f6;
+    color: #111827;
+    margin: 0;
+    padding: 0;
+}
+
+/* Suppression globale des lignes de soulignement automatiques */
+a {
+    text-decoration: none;
+    color: inherit;
+}
+
+/* --- EN-TÊTE / MENU --- */
+.site-header {
+    background-color: #ffffff;
+    border-bottom: 1px solid #e5e7eb;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+}
+
+.header-container {
+    max-width: 80rem;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+    height: 5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    text-transform: uppercase;
+    font-weight: 900;
+    font-size: 1.25rem;
+    letter-spacing: -0.05em;
+}
+
+.logo-sub {
+    font-weight: 300;
+    color: #4f46e5;
+    letter-spacing: 0.1em;
+}
+
+.nav-menu {
+    display: none;
+    gap: 2rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+@media (min-width: 768px) { .nav-menu { display: flex; } }
+
+.nav-link {
+    color: #4b5563;
+    padding-bottom: 0.25rem;
+    border-bottom: 2px solid transparent;
+    transition: color 0.2s;
+}
+.nav-link.active, .nav-link:hover {
+    color: #4f46e5;
+    border-color: #4f46e5;
+}
+
+.btn-espace-client {
+    background-color: #0f172a;
+    color: #ffffff;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.75rem 1.25rem;
+    transition: background-color 0.2s;
+}
+.btn-espace-client:hover {
+    background-color: #4f46e5;
+}
+
+/* --- PIED DE PAGE --- */
+.site-footer {
+    background-color: #ffffff;
+    border-top: 1px solid #e5e7eb;
+    padding: 2rem 0;
+    margin-top: auto;
+}
+
+.footer-container {
+    max-width: 80rem;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #9ca3af;
+    gap: 1rem;
+}
+@media (min-width: 768px) { .footer-container { flex-direction: row; gap: 0; } }
+
+.footer-logo-text { color: #0f172a; font-weight: 900; }
