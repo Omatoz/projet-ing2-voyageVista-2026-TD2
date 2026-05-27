@@ -1,29 +1,46 @@
 <?php 
+if (session_status() === PHP_SESSION_NONE) { session_start(); }
 include 'header.php'; 
 include 'database.php'; 
 
-$briquesSelectionnees = [];
+$choix = [];
 $totalGlobal = 0;
 
-// Si le panier en session contient des identifiants
 if (isset($_SESSION['panier']) && !empty($_SESSION['panier'])) {
-    $ids = array_map('intval', $_SESSION['panier']);
-    $listeIds = implode(',', $ids);
-    
     if ($conn !== null) {
-        try {
-            // Extraction ordonnée selon la chronologie de sélection exacte
-            $requete = $conn->query("SELECT * FROM briques_voyage WHERE id IN ($listeIds) ORDER BY FIELD(id, $listeIds)");
-            $briquesSelectionnees = $requete->fetchAll(PDO::FETCH_ASSOC);
-        } catch(PDOException $exception) {
-            echo "<div style='color:red; font-weight:bold; padding:1rem;'>Erreur de chargement : " . $exception->getMessage() . "</div>";
+        foreach ($_SESSION['panier'] as $item) {
+            $id = (int)$item['id'];
+            $type = $item['type'];
+            $sql = "";
+            
+            // Requêtes dynamiques selon la table
+            if ($type === 'destination') {
+                $sql = "SELECT titre, prix, 'Destination' as type_brique FROM destinations WHERE id = $id";
+            } elseif ($type === 'transport') {
+                $sql = "SELECT titre, prix, 'Transport' as type_brique FROM transports WHERE id = $id";
+            } elseif ($type === 'hebergement') {
+                $sql = "SELECT titre, prix_nuit as prix, 'Hébergement' as type_brique FROM hebergements WHERE id = $id";
+            } elseif ($type === 'activite') {
+                $sql = "SELECT titre, prix_ticket as prix, 'Activité' as type_brique FROM activites WHERE id = $id";
+            }
+            
+            if ($sql !== "") {
+                try {
+                    $stmt = $conn->query($sql);
+                    if ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                        $choix[] = $row;
+                    }
+                } catch(PDOException $exception) {
+                    echo "Erreur de chargement pour $type: " . $exception->getMessage();
+                }
+            }
         }
     }
 }
 
-// Bouton de réinitialisation cliqué (retour à l'accueil destination)
 if (isset($_POST['action_recommencer'])) {
     $_SESSION['panier'] = [];
+    unset($_SESSION['destination_id']);
     header("Location: index.php");
     exit;
 }
@@ -44,12 +61,12 @@ if (isset($_POST['action_recommencer'])) {
     <div class="panier-container" style="background: white; border-radius: 12px; padding: 2.5rem; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);">
         
         <div class="panier-items-list" style="margin-bottom: 2rem;">
-            <?php if (empty($briquesSelectionnees)): ?>
+            <?php if (empty($choix)): ?>
                 <div style="text-align:center; padding:3rem 0; color:#9ca3af; font-weight:700; text-transform:uppercase;">
                     Votre itinéraire est vide ou n'a pas été validé correctement.
                 </div>
             <?php else: ?>
-                <?php foreach ($briquesSelectionnees as $brique): ?>
+                <?php foreach ($choix as $brique): ?>
                     <?php 
                         $prixBrique = round($brique['prix']);
                         $totalGlobal += $prixBrique;
