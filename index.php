@@ -22,7 +22,6 @@ if ($conn !== null) {
     <div class="search-container">
         <div class="title-bloc">
             <h1>Planifiez. Explorez. Vivez.</h1>
-            <p>Agence de voyages — Configuration d'itinéraires</p>
         </div>
 
         <form action="index.php" method="GET" class="search-form">
@@ -81,7 +80,7 @@ if ($conn !== null) {
         
         <div class="col-catalogue">
             <div class="bloc-title">
-                <h2>Destinations & Briques disponibles</h2>
+                <h2>Destinations</h2>
             </div>
             
             <div class="cards-grid" id="catalogue-voyages"></div>
@@ -89,7 +88,7 @@ if ($conn !== null) {
 
         <div>
             <div class="bloc-title">
-                <h2>Mon itinéraire composé</h2>
+                <h2>Mon itinéraire</h2>
             </div>
             <div class="panier-container">
                 <p class="panier-sub" id="panier-statut">0 brique sélectionnée</p>
@@ -109,29 +108,29 @@ if ($conn !== null) {
 </section>
 
 <script>
-// 1. Récupération sécurisée du catalogue PHP issu de MySQL
+// Récupération sécurisée du catalogue PHP issu de MySQL
 const voyagesData = <?php echo json_encode($briquesBDD); ?>;
 
-// 2. État de l'application (Le panier commence VIDE au chargement)
+// État de l'application (Le panier commence VIDE au chargement)
 let panier = [];
 let categorieActuelle = "tous";
 
-// 3. Éléments du DOM (HTML)
+// Éléments du DOM (HTML)
 const catalogueContainer = document.getElementById('catalogue-voyages');
 const panierContenu = document.getElementById('panier-contenu');
 const panierTotal = document.getElementById('panier-total');
 const panierStatut = document.getElementById('panier-statut');
 const btnValiderPanier = document.getElementById('btn-valider-panier');
 
-// 4. Fonction pour afficher les cartes du catalogue selon les filtres
+// Fonction pour afficher les cartes du catalogue selon les filtres
 function afficherCatalogue() {
     catalogueContainer.innerHTML = ""; 
     
-    // 1. Récupération des valeurs des filtres de saisie
+    // Récupération des valeurs des filtres de saisie
     const texteRecherche = document.getElementById('search-destination').value.toLowerCase();
     const filtreTransport = document.getElementById('search-transport').value;
 
-    // 2. Filtrage croisé des données reçues de MySQL
+    // Filtrage croisé des données reçues de MySQL
     const voyagesFiltrés = voyagesData.filter(v => {
         // Vérification si la catégorie sélectionnée est dans la liste de la brique (séparée par des virgules)
         const matchCategorie = (categorieActuelle === "tous" || v.categorie.split(',').includes(categorieActuelle));
@@ -150,7 +149,7 @@ function afficherCatalogue() {
         return matchCategorie && matchTexte && matchTransport;
     });
 
-    // 3. Gestion du cas où aucun voyage ne correspond aux critères
+    // Gestion du cas où aucun voyage ne correspond aux critères
     if (voyagesFiltrés.length === 0) {
         catalogueContainer.innerHTML = "<p style='font-size: 0.875rem; color:#6b7280; font-weight:700; text-transform:uppercase;'>Aucune brique ne correspond à vos critères.</p>";
         return;
@@ -204,14 +203,14 @@ window.ajouterAuPanier = function(id) {
     }
 }
 
-// 6. Retirer un élément du panier
+// Retirer un élément du panier
 window.retirerDuPanier = function(id) {
     panier = panier.filter(item => item.id != id);
     mettreAJourPanier();
     afficherCatalogue();
 }
 
-// 7. Mise à jour visuelle du panier
+// Mise à jour visuelle du panier
 function mettreAJourPanier() {
     panierContenu.innerHTML = ""; 
     
@@ -252,7 +251,7 @@ function mettreAJourPanier() {
     btnValiderPanier.disabled = false;
 }
 
-// 8. Événements sur les boutons de catégories (cercles)
+// Événements sur les boutons de catégories
 document.querySelectorAll('.btn-categorie-rond').forEach(bouton => {
     bouton.addEventListener('click', () => {
         document.querySelectorAll('.btn-categorie-rond').forEach(b => {
@@ -269,9 +268,9 @@ document.querySelectorAll('.btn-categorie-rond').forEach(bouton => {
 
 document.getElementById('btn-filtrer-recherche').addEventListener('click', afficherCatalogue);
 
-// 9. Chargement Initial
+// Chargement Initial
 afficherCatalogue();
 mettreAJourPanier();
 </script>
 
-<?php include 'includes/footer.php'; ?>
+<?php include 'footer.php'; ?>
