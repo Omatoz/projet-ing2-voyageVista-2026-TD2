@@ -6,13 +6,11 @@ body {
     padding: 0;
 }
 
-/* Suppression lignes liens de soulignement */
 a {
     text-decoration: none;
     color: inherit;
 }
 
-/* en-tête & menu de notre site */
 .site-header {
     background-color: #ffffff;
     border-bottom: 1px solid #e5e7eb;
@@ -31,15 +29,6 @@ a {
     align-items: center;
 }
 
-.logo {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    text-transform: uppercase;
-    font-weight: 900;
-    font-size: 1.25rem;
-    letter-spacing: -0.05em;
-}
 
 .logo-sub {
     font-weight: 300;

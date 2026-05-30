@@ -137,7 +137,7 @@ if ($conn !== null) {
     }
 
         if (voyagesFiltrés.length === 0) {
-            catalogueContainer.innerHTML = "<p style='font-size: 0.875rem; color:#6b7280; font-weight:700; text-transform:uppercase;'>Aucune brique ne correspond à vos critères.</p>";
+            catalogueContainer.innerHTML = "<p style='font-size: 0.875rem; color:#6b7280; font-weight:700; text-transform:uppercase;'>Aucune destination ne correspond à vos critères.</p>";
             return;
         }
 
@@ -182,9 +182,9 @@ if ($conn !== null) {
     function mettreAJourPanier() {
         panierContenu.innerHTML = ""; 
         if (panier.length === 0) {
-            panierContenu.innerHTML = `<div style="text-align:center; padding:2rem 0; color:#9ca3af; font-size:0.75rem; font-weight:700; text-transform:uppercase;">Votre itinéraire est vide.<br>Sélectionnez une brique.</div>`;
+            panierContenu.innerHTML = `<div style="text-align:center; padding:2rem 0; color:#9ca3af; font-size:0.75rem; font-weight:700; text-transform:uppercase;">Votre itinéraire est vide.<br>Sélectionnez une destination.</div>`;
             panierTotal.textContent = "0 €";
-            panierStatut.textContent = "0 brique sélectionnée";
+            panierStatut.textContent = "0 destination sélectionnée";
             btnValiderPanier.disabled = true;
             return;
         }
@@ -208,7 +208,7 @@ if ($conn !== null) {
             panierContenu.insertAdjacentHTML('beforeend', itemHtml);
         });
         panierTotal.textContent = total + " €";
-        panierStatut.textContent = `${panier.length} brique configurée`;
+        panierStatut.textContent = `${panier.length} destination configurée`;
         btnValiderPanier.disabled = false;
     }
 
