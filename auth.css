@@ -102,3 +102,25 @@
 .auth-link-action:hover {
     text-decoration: underline;
 }
+
+.dashboard-grid input {
+        background: transparent !important;
+        border: none !important;
+        outline: none !important; /* Supprime le contour violet au clic/focus */
+        box-shadow: none !important;
+    }
+
+/* Style pour les champs en lecture seule */
+input:read-only {
+    border: none !important;
+    background: transparent !important;
+    cursor: default;
+}
+
+.edit-icon {
+    cursor: pointer;
+    margin-left: 10px;
+    color: #4f46e5;
+    font-size: 0.8rem;
+    text-decoration: underline;
+}
