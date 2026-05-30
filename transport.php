@@ -4,22 +4,17 @@ include 'header.php';
 include 'database.php'; 
 
 $dest_id = $_SESSION['destination_id'] ?? null;
+$nb_voyageurs = $_SESSION['voyageurs'] ?? 1; 
 $moyen_transport = [];
 
 if ($conn && $dest_id) {
     try {
-        $stmt = $conn->prepare("SELECT id, titre, description, prix, image_url FROM transports WHERE id_destination = :dest ORDER BY id ASC");
+        $stmt = $conn->prepare("SELECT id, titre, description, prix, image_url, capacite_max, date_debut_dispo, date_fin_dispo FROM transports WHERE id_destination = :dest ORDER BY id ASC");
         $stmt->execute(['dest' => $dest_id]);
         $moyen_transport = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    } catch(PDOException $exception) {
-        echo "<div style='color:red; padding:1rem;'>Erreur SQL : " . $exception->getMessage() . "</div>";
-    }
+    } catch(PDOException $exception) {}
 } else {
-    echo "<div style='padding:4rem; text-align:center;'>
-            <h2>⚠️ Aucune destination choisie</h2>
-            <a href='index.php'>Retour à l'accueil</a>
-          </div>";
-    include 'footer.php'; exit;
+    header("Location: index.php"); exit;
 }
 ?>
 
@@ -27,26 +22,23 @@ if ($conn && $dest_id) {
 
 <section class="search-section">
     <div class="search-container">
+        <a href="index.php" style="display:inline-block; margin-bottom:10px; color:#4f46e5; font-weight:bold; text-decoration:none;">← Changer de destination</a>
         <div class="title-bloc"><h1>Vos Transferts & Vols Privés</h1></div>
-        <form action="transport.php" method="GET" class="search-form">
+        
+        <form class="search-form">
             <div class="champ-saisie-bloc">
-                <label>Recherche</label>
-                <input type="text" id="search-destination" placeholder="Filtrer les transports..." />
+                <label>Recherche (Nom du transport)</label>
+                <input type="text" id="search-nom" placeholder="..." oninput="afficherCatalogue()" />
             </div>
             <div class="champ-saisie-bloc">
-                <label>Gamme Élite</label>
-                <select id="search-transport">
+                <label>Gamme</label>
+                <select id="search-gamme" onchange="afficherCatalogue()">
                     <option value="tous">Toutes les options</option>
-                    <option value="vol">Vols / Jets</option>
-                    <option value="privé">Privé</option>
+                    <option value="vol">Vols & Jets</option>
+                    <option value="hélico">Hélicoptère</option>
+                    <option value="voiture">Voitures Privées</option>
+                    <option value="train">Trains</option>
                 </select>
-            </div>
-            <div class="champ-saisie-bloc">
-                <label>Date de départ</label>
-                <input type="date" id="search-date" value="2026-06-15" />
-            </div>
-            <div>
-                <button type="button" id="btn-filtrer-recherche" class="btn-submit-recherche">Rechercher</button>
             </div>
         </form>
     </div>
@@ -55,7 +47,7 @@ if ($conn && $dest_id) {
 <section class="main-content-section">
     <div class="main-grid">
         <div class="col-catalogue">
-            <div class="bloc-title"><h2>Options de Transport VIP</h2></div>
+            <div class="bloc-title"><h2>Options pour <?= $nb_voyageurs ?> voyageur(s)</h2></div>
             <div class="cards-grid" id="catalogue-voyages"></div>
         </div>
 
@@ -76,30 +68,32 @@ if ($conn && $dest_id) {
 
 <script>
     const voyagesData = <?php echo json_encode($moyen_transport); ?>;
+    const voyageursSession = <?php echo $nb_voyageurs; ?>;
     let panier = [];
 
     const catalogueContainer = document.getElementById('catalogue-voyages');
     const panierContenu = document.getElementById('panier-contenu');
     const panierTotal = document.getElementById('panier-total');
-    const panierStatut = document.getElementById('panier-statut');
     const btnValiderPanier = document.getElementById('btn-valider-panier');
 
     function afficherCatalogue() {
         catalogueContainer.innerHTML = ""; 
-        const texteRecherche = document.getElementById('search-destination').value.toLowerCase();
-        const filtreTransport = document.getElementById('search-transport').value;
+        const texteRecherche = document.getElementById('search-nom').value.toLowerCase();
+        const filtreGamme = document.getElementById('search-gamme').value.toLowerCase();
 
         const voyagesFiltrés = voyagesData.filter(v => {
-            const matchTexte = v.titre.toLowerCase().includes(texteRecherche) || v.description.toLowerCase().includes(texteRecherche);
-            let matchTransport = true;
-            if (filtreTransport !== "tous") {
-                matchTransport = v.titre.toLowerCase().includes(filtreTransport) || v.description.toLowerCase().includes(filtreTransport);
-            }
-            return matchTexte && matchTransport;
+            // NOUVEAU : Filtre strict sur le Titre uniquement
+            const matchTexte = v.titre.toLowerCase().includes(texteRecherche);
+            // NOUVEAU : Filtre de Gamme
+            const matchGamme = filtreGamme === 'tous' || v.titre.toLowerCase().includes(filtreGamme) || v.description.toLowerCase().includes(filtreGamme);
+            // NOUVEAU : Capacité
+            const matchCapacite = v.capacite_max == null || v.capacite_max >= voyageursSession;
+            
+            return matchTexte && matchGamme && matchCapacite;
         });
 
         if (voyagesFiltrés.length === 0) {
-            catalogueContainer.innerHTML = "<p style='font-size: 0.875rem; color:#6b7280; font-weight:700; text-transform:uppercase;'>Aucune option disponible.</p>";
+            catalogueContainer.innerHTML = "<p style='color:#6b7280; font-weight:700;'>Aucune option disponible.</p>";
             return;
         }
 
@@ -107,18 +101,33 @@ if ($conn && $dest_id) {
             const estDansLePanier = panier.some(item => item.id === voyage.id);
             const prixEntier = Math.round(voyage.prix);
 
+            let today = new Date().toISOString().split('T')[0];
+            let minDate = voyage.date_debut_dispo ? voyage.date_debut_dispo : today;
+            let maxDate = voyage.date_fin_dispo ? voyage.date_fin_dispo : '2030-12-31';
+            
+            let dispoHtml = voyage.date_debut_dispo 
+                ? `<p style="font-size: 0.75rem; color: #059669; font-weight:bold; background:#d1fae5; padding:4px; border-radius:4px; text-align:center;">Dispo du ${voyage.date_debut_dispo} au ${voyage.date_fin_dispo}</p>`
+                : `<p style="font-size: 0.75rem; color: #2563eb; font-weight:bold; background:#dbeafe; padding:4px; border-radius:4px; text-align:center;">Disponible toute l'année</p>`;
+
             let visuelHtml = voyage.image_url 
             ? `<div class="placeholder-image-bloc" style="background-image: url('${voyage.image_url}'); background-size: cover; background-position: center;"><span class="price-badge">${prixEntier} €</span></div>`
             : `<div class="placeholder-image-bloc bg-transport"><span class="price-badge">${prixEntier} €</span></div>`;
 
             const cardHtml = `
-            <div class="bloc-card">
+            <div class="bloc-card card-item">
                 ${visuelHtml}
-                <div class="card-header">
-                    <h3 class="card-title">${voyage.titre}</h3>
-                </div>
+                <div class="card-header"><h3 class="card-title">${voyage.titre}</h3></div>
                 <p class="card-description">${voyage.description}</p>
-                <button class="btn-action-bloc" onclick="ajouterAuPanier(${voyage.id})" ${estDansLePanier ? 'style="background-color:#4f46e5;" disabled' : ''}>
+                
+                ${dispoHtml}
+                <p style="font-size:0.7rem; color:#6b7280; margin-bottom:10px;">Capacité max : ${voyage.capacite_max || 'illimitée'} personnes</p>
+
+                <div style="margin: 10px 0; display: flex; flex-direction: column; gap: 5px; font-size: 0.85rem;">
+                    <label>Départ : <input type="date" class="date-debut" min="${minDate}" max="${maxDate}"></label>
+                    <label>Retour : <input type="date" class="date-fin" min="${minDate}" max="${maxDate}"></label>
+                </div>
+
+                <button class="btn-action-bloc" onclick="ajouterAuPanier(${voyage.id}, 'transport', this, '${voyage.titre.replace(/'/g, "\\'")}', ${voyage.prix}, '${minDate}', '${maxDate}')" ${estDansLePanier ? 'style="background-color:#4f46e5;" disabled' : ''}>
                     ${estDansLePanier ? 'Sélectionné ✓' : 'Sélectionner ce transport'}
                 </button>
             </div>
@@ -127,73 +136,60 @@ if ($conn && $dest_id) {
         });
     }
 
-    window.ajouterAuPanier = function(id) {
-        const voyageSelectionne = voyagesData.find(v => v.id == id);
-        if (voyageSelectionne && !panier.some(item => item.id == id)) {
-            panier.push(voyageSelectionne);
-            mettreAJourPanier(); afficherCatalogue();
-        }
+    function ajouterAuPanier(id, type, bouton, titre, prix, minDate, maxDate) {
+        const parentCard = bouton.closest('.card-item');
+        const dateDebut = parentCard.querySelector('.date-debut').value;
+        const dateFin = parentCard.querySelector('.date-fin').value;
+
+        if (!dateDebut || !dateFin) { alert("Veuillez sélectionner vos dates !"); return; }
+        if (dateFin < dateDebut) { alert("La date de retour doit être après le départ !"); return; }
+        if (dateDebut < minDate || dateFin > maxDate) { alert("Dates hors période de disponibilité !"); return; }
+
+        bouton.textContent = "Ajout..."; bouton.disabled = true;
+
+        fetch(`stockage.php?action=ajouter&id=${id}&type=${type}&date_debut=${dateDebut}&date_fin=${dateFin}`)
+            .then(r => r.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    panier.push({ id: id, titre: titre, prix: prix, debut: dateDebut, fin: dateFin });
+                    mettreAJourPanier(); afficherCatalogue();
+                } else {
+                    alert("Erreur serveur."); bouton.textContent = "Sélectionner"; bouton.disabled = false;
+                }
+            });
     }
 
     window.retirerDuPanier = function(id) {
-        panier = panier.filter(item => item.id != id);
-        mettreAJourPanier(); afficherCatalogue();
+        fetch(`stockage.php?action=retirer&id=${id}&type=transport`).then(r => r.json()).then(data => {
+            if(data.status === 'success') { panier = panier.filter(item => item.id != id); mettreAJourPanier(); afficherCatalogue(); }
+        });
     }
 
     function mettreAJourPanier() {
         panierContenu.innerHTML = ""; 
         if (panier.length === 0) {
-            panierContenu.innerHTML = `<div style="text-align:center; padding:2rem 0; color:#9ca3af; font-size:0.75rem; font-weight:700; text-transform:uppercase;">Aucun transport sélectionné.</div>`;
-            panierTotal.textContent = "0 €";
-            panierStatut.textContent = "0 transport configuré";
-            btnValiderPanier.disabled = true; return;
+            panierContenu.innerHTML = `<div style="text-align:center; padding:2rem 0; color:#9ca3af; font-size:0.75rem; font-weight:700;">Aucun transport.</div>`;
+            panierTotal.textContent = "0 €"; btnValiderPanier.disabled = true; return;
         }
-
         let total = 0;
         panier.forEach(item => {
-            const prixItem = Math.round(item.prix);
-            total += prixItem;
-            const itemHtml = `
-            <div class="panier-item-row">
-                <div>
-                    <p class="panier-item-name">${item.titre}</p>
-                    <span class="panier-item-type">TRANSPORT</span>
+            const prixItem = Math.round(item.prix) * voyageursSession; total += prixItem;
+            panierContenu.insertAdjacentHTML('beforeend', `
+            <div class="panier-item-row" style="flex-direction:column; align-items:flex-start;">
+                <div style="display:flex; justify-content:space-between; width:100%;">
+                    <div><p class="panier-item-name">${item.titre}</p><span class="panier-item-type">TRANSPORT</span></div>
+                    <div style="display:flex; align-items:center; gap:0.5rem;"><span class="panier-item-price">${prixItem} €</span>
+                    <button onclick="retirerDuPanier(${item.id})" style="background:none; border:none; color:#ef4444; font-weight:800; cursor:pointer;">✕</button></div>
                 </div>
-                <div style="display:flex; align-items:center; gap:0.5rem;">
-                    <span class="panier-item-price">${prixItem} €</span>
-                    <button onclick="retirerDuPanier(${item.id})" style="background:none; border:none; color:#ef4444; font-weight:800; cursor:pointer; font-size:11px;">✕</button>
-                </div>
-            </div>
-            `;
-            panierContenu.insertAdjacentHTML('beforeend', itemHtml);
+                <div style="font-size:0.7rem; color:#6b7280; margin-top:5px;">Du ${item.debut} au ${item.fin}</div>
+            </div>`);
         });
-
-        panierTotal.textContent = total + " €";
-        panierStatut.textContent = `${panier.length} transport(s) configuré(s)`;
-        btnValiderPanier.disabled = false;
+        panierTotal.textContent = total + " €"; btnValiderPanier.disabled = false;
+        document.getElementById('panier-statut').textContent = `${panier.length} transport(s)`;
     }
 
-    btnValiderPanier.addEventListener('click', async () => {
-        if (panier.length === 0) return;
-        btnValiderPanier.textContent = "Sauvegarde en cours...";
-        btnValiderPanier.disabled = true;
-
-        try {
-            for (const item of panier) {
-                // MODIFICATION ICI : &type=transport ajouté
-                await fetch(`stockage.php?action=ajouter&id=${item.id}&type=transport`).then(r => r.json());
-            }
-            window.location.href = "hebergement.php";
-        } catch (err) {
-            alert("Erreur de sauvegarde.");
-            btnValiderPanier.textContent = "Continuer ➔";
-            btnValiderPanier.disabled = false;
-        }
-    });
-
-    document.getElementById('btn-filtrer-recherche').addEventListener('click', afficherCatalogue);
-    afficherCatalogue();
-    mettreAJourPanier();
+    btnValiderPanier.addEventListener('click', () => { if (panier.length > 0) window.location.href = "hebergement.php"; });
+    afficherCatalogue(); mettreAJourPanier();
 </script>
 
 <?php include 'footer.php'; ?>
