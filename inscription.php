@@ -5,6 +5,11 @@ include 'header.php';
 $erreur = "";
 $succes = "";
 
+if (isset($_SESSION['user_id'])) {
+    header('Location: utilisateur.php');
+    exit;
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $nom = strip_tags(trim($_POST['nom']));
     $prenom = strip_tags(trim($_POST['prenom']));
